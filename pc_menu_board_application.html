@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모아식당 - 프리미엄 디지털 메뉴판</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fbf7ee',
+                            100: '#f4ebd7',
+                            200: '#e7d5ae',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        freshWarm: '#faf8f5',
+                        creamCard: '#ffffff',
+                        accentCoral: '#ff6b6b',
+                        accentOrange: '#f97316',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #faf8f5;
+            color: #1f2937;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f0ec;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        }
+        .card-shadow:hover {
+            box-shadow: 0 20px 30px -10px rgba(16, 185, 129, 0.15), 0 10px 15px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-4px);
+        }
+        .tab-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+        }
+        /* Sold Out Card Overlay Styles */
+        .sold-out-card {
+            filter: grayscale(100%);
+            opacity: 0.75;
+            background-color: #f3f4f6 !important;
+            border-color: #e5e7eb !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-emerald-200 selection:text-emerald-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200/80 px-6 py-4 shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Brand Info -->
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md text-white font-black text-2xl border border-emerald-300">
+                    🍱
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-slate-800 flex items-center gap-2">
+                        <span id="txtHeaderBrand">모아식당</span> 
+                        <span id="txtHeaderTagline" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold">
+                            정성 가득한 한상
+                        </span>
+                    </h1>
+                    <p id="txtHeaderSub" class="text-xs text-slate-500 font-medium">신선한 재료와 정성을 담은 맛있는 레스토랑</p>
+                </div>
+            </div>
+
+            <!-- Language Switcher, Search & Cart -->
+            <div class="flex flex-wrap items-center space-x-3 w-full md:w-auto justify-end">
+                <!-- Language Switcher Buttons -->
+                <div class="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200/80 mr-1">
+                    <button onclick="setLanguage('ko')" id="langBtn-ko" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-emerald-600 shadow-sm">
+                        한국어
+                    </button>
+                    <button onclick="setLanguage('en')" id="langBtn-en" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+                        EN
+                    </button>
+                    <button onclick="setLanguage('ja')" id="langBtn-ja" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+                        日本語
+                    </button>
+                </div>
+
+                <!-- Search Box -->
+                <div class="relative flex-1 md:w-56">
+                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="메뉴 검색..." 
+                        class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-inner">
+                </div>
+
+                <!-- Cart Toggle Button -->
+                <button id="cartToggleBtn" onclick="toggleCartDrawer()" class="relative bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                    <span id="txtCartTitle" class="text-sm">주문 내역</span>
+                    <span id="cartCountBadge" class="ml-1 bg-emerald-600 text-white text-xs font-extrabold px-2 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Category Navigation -->
+    <nav class="bg-white/80 border-b border-stone-200/70 sticky top-[73px] z-20 py-3 px-6 shadow-xs backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto no-scrollbar gap-2">
+            <div class="flex items-center space-x-2" id="categoryTabs">
+                <button onclick="filterCategory('ALL')" data-category="ALL" 
+                    class="tab-btn tab-active px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2">
+                    <span>✨</span> <span id="tabCatAll">전체</span>
+                </button>
+                <button onclick="filterCategory('MEAL')" data-category="MEAL" 
+                    class="tab-btn text-slate-600 hover:text-slate-900 hover:bg-stone-100 px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2">
+                    <span>🍲</span> <span id="tabCatMeal">식사</span>
+                </button>
+                <button onclick="filterCategory('SIDE')" data-category="SIDE" 
+                    class="tab-btn text-slate-600 hover:text-slate-900 hover:bg-stone-100 px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2">
+                    <span>🍳</span> <span id="tabCatSide">사이드</span>
+                </button>
+                <button onclick="filterCategory('BEV')" data-category="BEV" 
+                    class="tab-btn text-slate-600 hover:text-slate-900 hover:bg-stone-100 px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2">
+                    <span>🥤</span> <span id="tabCatBev">음료</span>
+                </button>
+            </div>
+            
+            <div class="hidden lg:flex items-center text-xs text-slate-500 font-medium gap-4">
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span> <span id="tagPopular">인기 대표메뉴</span></span>
+                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span id="tagSpicy">매콤 불맛</span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
+        <!-- Notice Banner -->
+        <div class="mb-8 p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-orange-50/50 border border-emerald-100/80 flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-3">
+                <span class="p-2 bg-emerald-100 rounded-xl text-emerald-700 text-lg">💡</span>
+                <p id="txtBannerNotice" class="text-sm text-slate-700 font-medium">
+                    원하시는 메뉴를 클릭하시면 <strong class="text-emerald-700 font-bold">상세 정보 확인 및 장바구니 담기</strong>가 가능합니다.
+                </p>
+            </div>
+            <span id="menuCountDisplay" class="text-xs text-emerald-800 font-bold bg-white px-3.5 py-1.5 rounded-full border border-emerald-200/80 shadow-2xs">
+                총 8개 메뉴
+            </span>
+        </div>
+
+        <!-- Menu Grid -->
+        <div id="menuGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Dynamically populated menu cards -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20">
+            <p class="text-5xl mb-3">🔍</p>
+            <p id="txtEmptyTitle" class="text-lg font-bold text-slate-700">검색 조건에 맞는 메뉴가 없습니다.</p>
+            <p id="txtEmptySub" class="text-sm text-slate-400 mt-1">다른 검색어나 카테고리를 선택해 보세요.</p>
+        </div>
+    </main>
+
+    <!-- Cart Modal Drawer -->
+    <div id="cartModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden transition-opacity opacity-0 duration-300">
+        <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white border-l border-stone-200 p-6 flex flex-col justify-between shadow-2xl">
+            <div>
+                <div class="flex justify-between items-center pb-4 border-b border-stone-200">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span>🛒</span> <span id="txtDrawerTitle">선택한 메뉴</span>
+                    </h2>
+                    <button onclick="toggleCartDrawer()" class="text-slate-400 hover:text-slate-700 p-2 text-xl font-bold">✕</button>
+                </div>
+
+                <div id="cartItemsList" class="py-4 space-y-3 overflow-y-auto max-h-[60vh] pr-1">
+                    <!-- Cart items rendered here -->
+                </div>
+            </div>
+
+            <div class="border-t border-stone-200 pt-4 space-y-4">
+                <div class="flex justify-between items-center text-slate-700">
+                    <span id="txtTotalPriceLabel" class="font-bold">총 예상 금액</span>
+                    <span id="cartTotalPrice" class="text-2xl font-black text-emerald-600">0원</span>
+                </div>
+                <button id="btnOrderSubmit" onclick="submitOrder()" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-extrabold text-lg hover:brightness-105 transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.99]">
+                    주문 요청하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-stone-200 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl transform transition-all">
+            <div id="detailGraphicBanner" class="h-44 flex items-center justify-center relative p-6 bg-amber-50">
+                <span id="detailEmoji" class="text-7xl drop-shadow-md">🥘</span>
+                <button onclick="closeDetailModal()" class="absolute top-4 right-4 w-9 h-9 bg-white/80 hover:bg-white text-slate-700 rounded-full flex items-center justify-center transition-colors shadow-sm font-bold">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span id="detailCategory" class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">카테고리</span>
+                        <h3 id="detailName" class="text-2xl font-black text-slate-800 mt-2 flex items-center gap-2">메뉴명</h3>
+                    </div>
+                    <span id="detailPrice" class="text-2xl font-black text-emerald-600">0원</span>
+                </div>
+
+                <p id="detailDesc" class="text-slate-600 text-base leading-relaxed bg-stone-50 p-4 rounded-2xl border border-stone-200/80">
+                    한줄설명
+                </p>
+
+                <div id="detailBadges" class="flex flex-wrap gap-2 pt-1">
+                    <!-- Badges -->
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button id="btnDetailClose" onclick="closeDetailModal()" class="flex-1 py-3.5 bg-stone-100 hover:bg-stone-200 text-slate-700 rounded-2xl font-bold transition-colors">
+                        닫기
+                    </button>
+                    <button id="addToCartBtn" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md shadow-emerald-600/20">
+                        장바구니 담기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none z-50">
+        <span class="text-emerald-400 text-lg">✅</span>
+        <span id="toastMsg" class="text-sm font-bold">알림 메시지</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-stone-200 py-6 px-6 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+            <p>© 2026 모아식당 All rights reserved. | 대표: 김모아</p>
+            <p id="txtFooterNotice" class="text-slate-500">원산지 표시는 메뉴판 하단 메모 참조 | 와이파이: MOA_GUEST / PW: moa1234567</p>
+        </div>
+    </footer>
+
+    <script>
+        // Multilingual Translation Dictionary
+        const translations = {
+            ko: {
+                brand: "모아식당",
+                tagline: "정성 가득한 한상",
+                sub: "신선한 재료와 정성을 담은 맛있는 레스토랑",
+                searchPlaceholder: "메뉴 검색...",
+                cartTitle: "주문 내역",
+                catAll: "전체",
+                catMeal: "식사",
+                catSide: "사이드",
+                catBev: "음료",
+                popularTag: "인기 대표메뉴",
+                spicyTag: "매콤 불맛",
+                notice: "원하시는 메뉴를 클릭하시면 <strong class='text-emerald-700 font-bold'>상세 정보 확인 및 장바구니 담기</strong>가 가능합니다.",
+                emptyTitle: "검색 조건에 맞는 메뉴가 없습니다.",
+                emptySub: "다른 검색어나 카테고리를 선택해 보세요.",
+                drawerTitle: "선택한 메뉴",
+                emptyCart: "장바구니가 비어 있습니다.",
+                totalPrice: "총 예상 금액",
+                submitOrder: "주문 요청하기",
+                close: "닫기",
+                addToCart: "장바구니 담기",
+                addShort: "+ 담기",
+                soldOut: "품절",
+                orderSuccess: "주문이 성공적으로 전달되었습니다!",
+                emptyCartWarning: "장바구니에 담긴 메뉴가 없습니다.",
+                footerNotice: "원산지 표시는 메뉴판 하단 메모 참조 | 와이파이: MOA_GUEST / PW: moa1234567",
+                needCheck: "[확인 필요]"
+            },
+            en: {
+                brand: "MOA Restaurant",
+                tagline: "Heartfelt Dining",
+                sub: "Delightful restaurant made with fresh ingredients & care",
+                searchPlaceholder: "Search menu...",
+                cartTitle: "Cart Summary",
+                catAll: "All",
+                catMeal: "Meals",
+                catSide: "Sides",
+                catBev: "Drinks",
+                popularTag: "Popular Item",
+                spicyTag: "Spicy Flavor",
+                notice: "Click any item card to <strong class='text-emerald-700 font-bold'>view details and add to cart</strong>.",
+                emptyTitle: "No menu items match your search.",
+                emptySub: "Try searching with a different term or category.",
+                drawerTitle: "Order Details",
+                emptyCart: "Your cart is currently empty.",
+                totalPrice: "Total Estimate",
+                submitOrder: "Place Order",
+                close: "Close",
+                addToCart: "Add to Cart",
+                addShort: "+ Add",
+                soldOut: "Sold Out",
+                orderSuccess: "Your order has been placed successfully!",
+                emptyCartWarning: "Please add items to your cart first.",
+                footerNotice: "Origin info on menu notes | Wi-Fi: MOA_GUEST / PW: moa1234567",
+                needCheck: "[Needs Check]"
+            },
+            ja: {
+                brand: "モア食堂",
+                tagline: "心を込めた一膳",
+                sub: "新鮮な食材と心を込めて作る美味しいレストラン",
+                searchPlaceholder: "メニュー検索...",
+                cartTitle: "注文履歴",
+                catAll: " me全",
+                catMeal: "食事",
+                catSide: "サイド",
+                catBev: "ドリンク",
+                popularTag: "人気メニュー",
+                spicyTag: "ピリ辛風味",
+                notice: "メニューをクリックすると <strong class='text-emerald-700 font-bold'>詳細確認とカート追加</strong>が可能です。",
+                emptyTitle: "該当するメニューがありません。",
+                emptySub: "別の検索語やカテゴリーをお試しください。",
+                drawerTitle: "ご注文内容",
+                emptyCart: "カートは空です。",
+                totalPrice: "合計予想金額",
+                submitOrder: "注文する",
+                close: "閉じる",
+                addToCart: "カートに入れる",
+                addShort: "+ 追加",
+                soldOut: "売り切れ",
+                orderSuccess: "ご注文が正常に送信されました！",
+                emptyCartWarning: "カートに商品がありません。",
+                footerNotice: "原産地表示はメモ参照 | Wi-Fi: MOA_GUEST / PW: moa1234567",
+                needCheck: "[要確認]"
+            }
+        };
+
+        // Menu Multilingual Dataset with Emoji Assets
+        const menuData = [
+            {
+                id: 1,
+                emoji: "🥘",
+                price: "9.000원",
+                numericPrice: 9000,
+                categoryKey: "MEAL",
+                isSoldOut: false,
+                bgGradient: "from-amber-100 via-orange-50 to-red-100",
+                badgeTypes: [{ type: "spicy", textKo: "맵기 보통", textEn: "Medium Spicy", textJa: "普通辛さ" }],
+                i18n: {
+                    ko: { name: "김치찌개", category: "식사", desc: "푹 끓인 묵은지 돼지 [확인 필요]" },
+                    en: { name: "Kimchi Stew", category: "Meals", desc: "Deeply simmered aged kimchi pork stew [Needs Check]" },
+                    ja: { name: "キムチチゲ", category: "食事", desc: "じっくり煮込んだ熟成キムチ豚チゲ [要確認]" }
+                }
+            },
+            {
+                id: 2,
+                emoji: "🍲",
+                price: "8.500원",
+                numericPrice: 8500,
+                categoryKey: "MEAL",
+                isSoldOut: false,
+                bgGradient: "from-yellow-100 via-amber-50 to-orange-100",
+                badgeTypes: [{ type: "mild", textKo: "구수함", textEn: "Savory", textJa: "香ばしい" }],
+                i18n: {
+                    ko: { name: "된장찌개", category: "식사", desc: "구수한 집된장의 깊은맛 [확인 필요]" },
+                    en: { name: "Soybean Paste Stew", category: "Meals", desc: "Rich and deep savory traditional soybean stew [Needs Check]" },
+                    ja: { name: "味噌チゲ", category: "食事", desc: "香ばしい自家製味噌の深い味わい [要確認]" }
+                }
+            },
+            {
+                id: 3,
+                emoji: "🥩",
+                price: "10.000원",
+                numericPrice: 10000,
+                categoryKey: "MEAL",
+                isSoldOut: false,
+                bgGradient: "from-orange-100 via-red-50 to-amber-100",
+                badgeTypes: [
+                    { type: "popular", textKo: "인기", textEn: "Popular", textJa: "人気" },
+                    { type: "spicy", textKo: "불맛 매콤", textEn: "Smoky Spicy", textJa: "直火ピリ辛" }
+                ],
+                i18n: {
+                    ko: { name: "제육볶음", category: "식사", desc: "불향 가득 매콤 제육 [확인 필요]" },
+                    en: { name: "Spicy Stir-fried Pork", category: "Meals", desc: "Smoky and spicy stir-fried pork [Needs Check]" },
+                    ja: { name: "豚肉炒め", category: "食事", desc: "直火の香ばしさあふれるピリ辛豚肉炒め [要確認]" }
+                }
+            },
+            {
+                id: 4,
+                emoji: "🥣",
+                price: "9.500원",
+                numericPrice: 9500,
+                categoryKey: "MEAL",
+                isSoldOut: false, // Default active
+                bgGradient: "from-emerald-100 via-teal-50 to-lime-100",
+                badgeTypes: [{ type: "healthy", textKo: "신선 나물", textEn: "Fresh Herbs", textJa: "新鮮ナムル" }],
+                i18n: {
+                    ko: { name: "비빔밥", category: "식사", desc: "신선 나물 고추장 조화 [확인 필요]" },
+                    en: { name: "Bibimbap", category: "Meals", desc: "Fresh assorted vegetables with red pepper paste [Needs Check]" },
+                    ja: { name: "ビビンバ", category: "食事", desc: "新鮮ナムルとコチュジャンの絶妙な調和 [要確認]" }
+                }
+            },
+            {
+                id: 5,
+                emoji: "🍳",
+                price: "6.000원",
+                numericPrice: 6000,
+                categoryKey: "SIDE",
+                isSoldOut: false,
+                bgGradient: "from-yellow-100 via-yellow-50 to-amber-100",
+                badgeTypes: [{ type: "popular", textKo: "인기", textEn: "Popular", textJa: "人気" }],
+                i18n: {
+                    ko: { name: "계란말이", category: "사이드", desc: "폭신 부드러운 계란 [확인 필요]" },
+                    en: { name: "Rolled Omelet", category: "Sides", desc: "Soft and fluffy rolled egg omelet [Needs Check]" },
+                    ja: { name: "卵焼き", category: "サイド", desc: "ふんわり柔らかい出し巻き卵 [要確認]" }
+                }
+            },
+            {
+                id: 6,
+                emoji: "🍚",
+                price: "1.000원",
+                numericPrice: 1000,
+                categoryKey: "SIDE",
+                isSoldOut: false, // Default active
+                bgGradient: "from-stone-100 via-slate-50 to-stone-200",
+                badgeTypes: [{ type: "basic", textKo: "따끈한 밥", textEn: "Warm Rice", textJa: "ホカホカご飯" }],
+                i18n: {
+                    ko: { name: "공기밥", category: "사이드", desc: "갓 지어 따끈한 쌀밥 [확인 필요]" },
+                    en: { name: "Steamed Rice", category: "Sides", desc: "Freshly cooked warm white rice [Needs Check]" },
+                    ja: { name: "ライス", category: "サイド", desc: "炊きたてホカホカの白ご飯 [要確認]" }
+                }
+            },
+            {
+                id: 7,
+                emoji: "🥤",
+                price: "2.000원",
+                numericPrice: 2000,
+                categoryKey: "BEV",
+                isSoldOut: false,
+                bgGradient: "from-red-100 via-rose-50 to-red-200",
+                badgeTypes: [{ type: "cool", textKo: "시원함", textEn: "Ice Cold", textJa: "キンキン" }],
+                i18n: {
+                    ko: { name: "콜라", category: "음료", desc: "톡 쏘는 청량감 가득 [확인 필요]" },
+                    en: { name: "Cola", category: "Drinks", desc: "Refreshing fizzy soda drink [Needs Check]" },
+                    ja: { name: "コーラ", category: "ドリンク", desc: "シュワっと爽快な炭酸ドリンク [要確認]" }
+                }
+            },
+            {
+                id: 8,
+                emoji: "🟢",
+                price: "2.000원",
+                numericPrice: 2000,
+                categoryKey: "BEV",
+                isSoldOut: false,
+                bgGradient: "from-emerald-100 via-green-50 to-teal-100",
+                badgeTypes: [{ type: "cool", textKo: "청량함", textEn: "Crisp Soda", textJa: "爽やか" }],
+                i18n: {
+                    ko: { name: "사이다", category: "음료", desc: "속까지 시원한 청량감 [확인 필요]" },
+                    en: { name: "Cider (Lemon-Lime Soda)", category: "Drinks", desc: "Crisp and cool lemon-lime soda [Needs Check]" },
+                    ja: { name: "サイダー", category: "ドリンク", desc: "スッキリ爽やかなレモンライムソーダ [要確認]" }
+                }
+            }
+        ];
+
+        // State Management
+        let currentLang = 'ko';
+        let currentCategory = "ALL";
+        let searchQuery = "";
+        let cart = [];
+        let selectedItemForModal = null;
+
+        function setLanguage(lang) {
+            currentLang = lang;
+
+            // Language Buttons Highlight
+            ['ko', 'en', 'ja'].forEach(l => {
+                const btn = document.getElementById(`langBtn-${l}`);
+                if (l === lang) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-emerald-600 shadow-sm";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900";
+                }
+            });
+
+            // Static UI Texts
+            const t = translations[lang];
+            document.getElementById("txtHeaderBrand").textContent = t.brand;
+            document.getElementById("txtHeaderTagline").textContent = t.tagline;
+            document.getElementById("txtHeaderSub").textContent = t.sub;
+            document.getElementById("searchInput").placeholder = t.searchPlaceholder;
+            document.getElementById("txtCartTitle").textContent = t.cartTitle;
+
+            document.getElementById("tabCatAll").textContent = t.catAll;
+            document.getElementById("tabCatMeal").textContent = t.catMeal;
+            document.getElementById("tabCatSide").textContent = t.catSide;
+            document.getElementById("tabCatBev").textContent = t.catBev;
+
+            document.getElementById("tagPopular").textContent = t.popularTag;
+            document.getElementById("tagSpicy").textContent = t.spicyTag;
+            document.getElementById("txtBannerNotice").innerHTML = t.notice;
+
+            document.getElementById("txtEmptyTitle").textContent = t.emptyTitle;
+            document.getElementById("txtEmptySub").textContent = t.emptySub;
+
+            document.getElementById("txtDrawerTitle").textContent = t.drawerTitle;
+            document.getElementById("txtTotalPriceLabel").textContent = t.totalPrice;
+            document.getElementById("btnOrderSubmit").textContent = t.submitOrder;
+            document.getElementById("btnDetailClose").textContent = t.close;
+            document.getElementById("addToCartBtn").textContent = t.addToCart;
+
+            document.getElementById("txtFooterNotice").textContent = t.footerNotice;
+
+            renderMenu();
+            updateCartUI();
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById("menuGrid");
+            const emptyState = document.getElementById("emptyState");
+            const t = translations[currentLang];
+            grid.innerHTML = "";
+
+            const filtered = menuData.filter(item => {
+                const matchesCategory = (currentCategory === "ALL") || (item.categoryKey === currentCategory);
+                const itemInfo = item.i18n[currentLang];
+                const matchesSearch = itemInfo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      itemInfo.desc.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesCategory && matchesSearch;
+            });
+
+            document.getElementById("menuCountDisplay").textContent = `총 ${filtered.length}개 메뉴`;
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove("hidden");
+                return;
+            } else {
+                emptyState.classList.add("hidden");
+            }
+
+            filtered.forEach(item => {
+                const itemInfo = item.i18n[currentLang];
+                const card = document.createElement("div");
+                
+                const isSoldOut = item.isSoldOut;
+                
+                card.className = `group bg-white border ${isSoldOut ? 'sold-out-card' : 'border-stone-200/90'} hover:border-emerald-400 rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 flex flex-col justify-between card-shadow relative`;
+
+                // Badges HTML
+                const badgesHtml = item.badgeTypes.map(b => {
+                    let label = b.textKo;
+                    if (currentLang === 'en') label = b.textEn;
+                    if (currentLang === 'ja') label = b.textJa;
+
+                    let badgeStyle = "bg-stone-100 text-slate-600 border-stone-200";
+                    if (b.type === "popular") badgeStyle = "bg-orange-500 text-white font-extrabold";
+                    if (b.type === "spicy") badgeStyle = "bg-red-50 text-red-600 border-red-200 font-semibold";
+                    if (b.type === "healthy") badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold";
+
+                    return `<span class="text-[11px] px-2.5 py-0.5 rounded-full border ${badgeStyle}">${label}</span>`;
+                }).join("");
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Header Banner -->
+                        <div class="h-36 bg-gradient-to-br ${item.bgGradient} flex items-center justify-center relative p-4 group-hover:scale-102 transition-transform duration-500">
+                            <span class="text-6xl drop-shadow-md select-none transition-transform group-hover:scale-110 duration-300">${item.emoji}</span>
+                            <span class="absolute top-3 left-3 text-xs font-bold bg-white/80 text-slate-700 backdrop-blur-md px-3 py-1 rounded-full border border-white/40 shadow-2xs">
+                                ${itemInfo.category}
+                            </span>
+
+                            <!-- Sold Out Overlay Text -->
+                            ${isSoldOut ? `
+                                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
+                                    <span class="bg-red-600 text-white font-black text-sm px-4 py-1.5 rounded-full tracking-wider shadow-lg">
+                                        ${t.soldOut}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="p-5 space-y-2">
+                            <div class="flex justify-between items-baseline gap-2">
+                                <h3 class="text-xl font-bold text-slate-800 group-hover:text-emerald-600 transition-colors flex items-center gap-2">
+                                    <span>${item.emoji}</span> ${itemInfo.name}
+                                </h3>
+                                <span class="text-lg font-black text-emerald-600 tracking-tight">
+                                    ${item.price}
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-slate-500 leading-relaxed line-clamp-2 min-h-[32px]">
+                                ${itemInfo.desc}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="px-5 pb-5 pt-2 flex items-center justify-between border-t border-stone-100 mt-1">
+                        <div class="flex flex-wrap gap-1.5">
+                            ${badgesHtml}
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <!-- Sold Out Toggle Button -->
+                            <button onclick="event.stopPropagation(); toggleSoldOut(${item.id})" 
+                                title="품절 상태 토글" 
+                                class="text-xs ${isSoldOut ? 'bg-red-600 text-white' : 'bg-stone-100 text-slate-500 hover:bg-stone-200'} px-2.5 py-1.5 rounded-xl font-bold transition-all border border-stone-200/80">
+                                ${t.soldOut}
+                            </button>
+
+                            <!-- Add to Cart Button -->
+                            <button onclick="event.stopPropagation(); addToCart(${item.id})" 
+                                ${isSoldOut ? 'disabled' : ''}
+                                class="text-xs ${isSoldOut ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'} px-3 py-1.5 rounded-xl transition-all font-bold flex items-center gap-1">
+                                ${t.addShort}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                if (!isSoldOut) {
+                    card.addEventListener("click", () => openDetailModal(item));
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleSoldOut(itemId) {
+            const item = menuData.find(m => m.id === itemId);
+            if (item) {
+                item.isSoldOut = !item.isSoldOut;
+                renderMenu();
+                const statusMsg = item.isSoldOut ? `'${item.i18n[currentLang].name}' 품절 처리되었습니다.` : `'${item.i18n[currentLang].name}' 판매 가능 상태로 변경되었습니다.`;
+                showToast(statusMsg);
+            }
+        }
+
+        function filterCategory(catKey) {
+            currentCategory = catKey;
+            
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                if (btn.getAttribute("data-category") === catKey) {
+                    btn.className = "tab-btn tab-active px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2";
+                } else {
+                    btn.className = "tab-btn text-slate-600 hover:text-slate-900 hover:bg-stone-100 px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-200 flex items-center gap-2";
+                }
+            });
+
+            renderMenu();
+        }
+
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            searchQuery = e.target.value.trim();
+            renderMenu();
+        });
+
+        function openDetailModal(item) {
+            if (item.isSoldOut) return;
+            selectedItemForModal = item;
+            const itemInfo = item.i18n[currentLang];
+            const t = translations[currentLang];
+
+            document.getElementById("detailName").innerHTML = `<span>${item.emoji}</span> ${itemInfo.name}`;
+            document.getElementById("detailPrice").textContent = item.price;
+            document.getElementById("detailCategory").textContent = itemInfo.category;
+            document.getElementById("detailDesc").textContent = itemInfo.desc;
+            document.getElementById("detailEmoji").textContent = item.emoji;
+
+            const banner = document.getElementById("detailGraphicBanner");
+            banner.className = `h-44 flex items-center justify-center relative p-6 bg-gradient-to-br ${item.bgGradient}`;
+
+            const badgesContainer = document.getElementById("detailBadges");
+            badgesContainer.innerHTML = item.badgeTypes.map(b => {
+                let label = b.textKo;
+                if (currentLang === 'en') label = b.textEn;
+                if (currentLang === 'ja') label = b.textJa;
+                return `<span class="text-xs px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">${label}</span>`;
+            }).join("");
+
+            document.getElementById("addToCartBtn").onclick = () => {
+                addToCart(item.id);
+                closeDetailModal();
+            };
+
+            document.getElementById("detailModal").classList.remove("hidden");
+        }
+
+        function closeDetailModal() {
+            document.getElementById("detailModal").classList.add("hidden");
+        }
+
+        function addToCart(itemId) {
+            const item = menuData.find(m => m.id === itemId);
+            if (!item || item.isSoldOut) return;
+
+            const existing = cart.find(c => c.id === itemId);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({ ...item, quantity: 1 });
+            }
+
+            updateCartUI();
+            showToast(`'${item.i18n[currentLang].name}' 추가됨`);
+        }
+
+        function updateQuantity(itemId, delta) {
+            const index = cart.findIndex(c => c.id === itemId);
+            if (index !== -1) {
+                cart[index].quantity += delta;
+                if (cart[index].quantity <= 0) {
+                    cart.splice(index, 1);
+                }
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const t = translations[currentLang];
+            const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = cart.reduce((sum, item) => sum + (item.numericPrice * item.quantity), 0);
+
+            const badge = document.getElementById("cartCountBadge");
+            if (totalCount > 0) {
+                badge.textContent = totalCount;
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
+            }
+
+            const cartList = document.getElementById("cartItemsList");
+            if (cart.length === 0) {
+                cartList.innerHTML = `<p class="text-center text-slate-400 py-10 font-medium">${t.emptyCart}</p>`;
+            } else {
+                cartList.innerHTML = cart.map(item => `
+                    <div class="flex items-center justify-between bg-stone-50 p-3.5 rounded-2xl border border-stone-200">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">${item.emoji}</span>
+                            <div>
+                                <p class="font-bold text-slate-800 text-sm">${item.i18n[currentLang].name}</p>
+                                <p class="text-xs text-emerald-600 font-extrabold">${(item.numericPrice * item.quantity).toLocaleString()}원</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 bg-white rounded-xl p-1 border border-stone-200 shadow-2xs">
+                            <button onclick="updateQuantity(${item.id}, -1)" class="w-6 h-6 rounded-lg text-slate-600 hover:bg-stone-100 flex items-center justify-center font-black text-xs">-</button>
+                            <span class="text-xs text-slate-800 font-bold px-1">${item.quantity}</span>
+                            <button onclick="updateQuantity(${item.id}, 1)" class="w-6 h-6 rounded-lg text-slate-600 hover:bg-stone-100 flex items-center justify-center font-black text-xs">+</button>
+                        </div>
+                    </div>
+                `).join("");
+            }
+
+            document.getElementById("cartTotalPrice").textContent = `${totalPrice.toLocaleString()}원`;
+        }
+
+        function toggleCartDrawer() {
+            const modal = document.getElementById("cartModal");
+            if (modal.classList.contains("hidden")) {
+                modal.classList.remove("hidden");
+                setTimeout(() => modal.classList.remove("opacity-0"), 10);
+            } else {
+                modal.classList.add("opacity-0");
+                setTimeout(() => modal.classList.add("hidden"), 300);
+            }
+        }
+
+        function submitOrder() {
+            const t = translations[currentLang];
+            if (cart.length === 0) {
+                showToast(t.emptyCartWarning);
+                return;
+            }
+            showToast(t.orderSuccess);
+            cart = [];
+            updateCartUI();
+            toggleCartDrawer();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toastMsg").textContent = msg;
+            toast.classList.remove("opacity-0", "pointer-events-none");
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "pointer-events-none");
+            }, 2500);
+        }
+
+        // Initialize App on DOM Load
+        window.onload = function() {
+            setLanguage('ko');
+        };
+    </script>
+</body>
+</html>
